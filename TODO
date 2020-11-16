@@ -1,0 +1,7 @@
+
+Todo:
+  ☐ Create class for LED and Clock timing managment
+  ☐ Check for the use of interupt
+
+Done:
+  ✔ Check for DigitalWrite vs AnalogWrite and noise on speaker @done(20-11-16 13:10)
