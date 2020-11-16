@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "esp8266_alarmclock_music"
+		},
+		{
+			"path": "."
 		}
 	],
 	"settings": {}
