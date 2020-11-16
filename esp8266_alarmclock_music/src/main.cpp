@@ -1,4 +1,8 @@
 /*  ============================================================================================================
+References
+https://www.instructables.com/MQTT-Audio-Notifier-for-ESP8266-Play-MP3-TTS-RTTL/
+https://gitlab.com/MrDIYca/mrdiy-audio-notifier
+
     MrDIY Audio Notifier is a cloud-free media notifier that can play MP3s, stream icecast radios, read text 
     and play RTTTL ringtones. It is controller over MQTT.
 
