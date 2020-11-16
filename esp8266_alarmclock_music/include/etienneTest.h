@@ -27,32 +27,48 @@ int sensorValue = 30000;  // variable to store the value coming from the sensor
 // unsigned long refreshTime;
 unsigned long refreshTime = 30000;
 unsigned long previousMillis = 0;
+unsigned long previousMillisLED = 0;
+int counter = 1;
 
 // Etienne's Functions -------------
 void updateEtiClock(void)
 {
     unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= sensorValue)
+    if (currentMillis - previousMillis >= refreshTime)
     {
         timeClient.update();
         int timeNow = timeClient.getHours() * 100 + timeClient.getMinutes();
         display.showNumberDecEx(timeNow, 0b01000000, false, 4, 0);
         previousMillis = currentMillis; // Remember the time
-
-        int absSinBlue = 255 * (sin(millis() * PI / 10000) / 2.0 + 0.5); // Freq 1/10
-        analogWrite(blue_led, absSinBlue);
-        sensorValue = 30 * analogRead(sensorPin);
-        Serial.print("sensorValue is : ");
-        Serial.print(sensorValue);
-        Serial.println("========");
-        Serial.print("ClickValue is : ");
-        Serial.print(digitalRead(clickPin));
-        Serial.println("========");
     }
 }
 
 void updateLedRed(void)
 {
-    int absSinRed = 255 * (sin(millis() * PI / 10000) / 2.0 + 0.5); // Freq 1/10
-    analogWrite(red_led, absSinRed);
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillisLED >= sensorValue)
+    {
+        sensorValue = 30 * analogRead(sensorPin);
+        Serial.println("========");
+        Serial.print("sensorValue is : ");
+        Serial.println(sensorValue);
+        Serial.print("counterValue is : ");
+        Serial.println(counter);
+
+        if (counter % 2 == 0)
+        {
+            digitalWrite(red_led, HIGH);
+            digitalWrite(blue_led, LOW);
+            Serial.println("Red");
+        }
+        else
+        {
+            digitalWrite(red_led, LOW);
+            digitalWrite(blue_led, HIGH);
+            Serial.println("Blue");
+        }
+
+        counter += 1;
+        previousMillisLED = currentMillis; // Remember the time
+    }
 }

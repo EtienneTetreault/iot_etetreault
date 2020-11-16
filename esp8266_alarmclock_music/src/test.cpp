@@ -479,13 +479,8 @@ void setup()
 void loop()
 {
     // Etienne's loop ---------------------------
-    // sensorValue = 30 * analogRead(sensorPin);
     updateEtiClock();
-    if (digitalRead(clickPin) == LOW) // No time delay, edit LED at each Loop
-    {
-        int absSinRed = 255 * (sin(millis() * 2 * PI / 10000) / 2.0 + 0.5); // Freq 1/10
-        analogWrite(red_led, absSinRed);
-    }
+    updateLedRed();
 
     mqttReconnect();
     mqttClient.loop();
