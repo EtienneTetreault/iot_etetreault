@@ -317,6 +317,12 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         {
             stopPlaying();
         }
+
+        // got a stop request  --------------------------------------------------
+        if (!strcmp(topic, mqttFullTopic("lampFreq")))
+        {
+            stopPlaying(); // Etienne : Do someting with lamp message payload!
+        }
     }
 }
 
@@ -363,6 +369,7 @@ void mqttReconnect()
             mqttClient.subscribe(mqttFullTopic("say"));
             mqttClient.subscribe(mqttFullTopic("stop"));
             mqttClient.subscribe(mqttFullTopic("volume"));
+            mqttClient.subscribe(mqttFullTopic("lampFreq")); //Etienne subs MQTT
 #ifdef DEBUG_FLAG
             Serial.println(F("Connected to MQTT"));
 #endif
