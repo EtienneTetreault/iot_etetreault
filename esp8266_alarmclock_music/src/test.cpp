@@ -437,12 +437,10 @@ void setup()
     display.clear();
     display.setBrightness(7);                               // Set the brightness:
     display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // To test?? Etienne
-    pinMode(red_led, OUTPUT);
-    pinMode(blue_led, OUTPUT);
-    digitalWrite(red_led, LOW);
-    digitalWrite(blue_led, LOW);
     pinMode(clickPin, INPUT_PULLUP);
     Serial.begin(115200);
+    led_controller.setUpInitialize();
+    led_controller.led_state_arr = {1, 1, 0};
 
 #ifdef DEBUG_FLAG
     Serial.begin(115200);
@@ -491,7 +489,13 @@ void loop()
 {
     // Etienne's loop ---------------------------
     updateEtiClock();
-    updateLedRed();
+
+    unsigned long currentMillis = millis();
+    if (currentMillis - led_controller.previous_millis >= led_controller.period_milli)
+    {
+        led_controller.updateLed();
+        led_controller.previous_millis = currentMillis; // Remember the time
+    }
 
     mqttReconnect();
     mqttClient.loop();

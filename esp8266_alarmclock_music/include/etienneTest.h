@@ -76,7 +76,7 @@ class LedControl
 {
 public:
     LedControlState state_control = IDLE;
-    int period_milli = 10000;
+    int period_milli = 5000;
     const int pin_blue = D1;
     const int pin_green = D2;
     const int pin_white = D3;
@@ -85,6 +85,8 @@ public:
     int state_white = LOW;
     unsigned long previous_millis = 0; // TODO check for better time counter, what happen when overflow?
     std::string mqtt_topic = "emptyStr";
+    std::vector<int> led_pin_arr = {D4, D2, D3};
+    std::vector<int> led_state_arr = {0, 0, 0};
 
     // Constructor
     LedControl();
@@ -93,6 +95,7 @@ public:
     // Methods
     void getMqttUpdate(char t_payload_led[]);
     void setUpInitialize(void);
+    void updateLed(void);
 };
 
 LedControl::LedControl() = default;
@@ -133,6 +136,23 @@ void LedControl::setUpInitialize(void)
     digitalWrite(pin_blue, LOW);
     digitalWrite(pin_green, LOW);
     digitalWrite(pin_white, LOW);
+
+    for (auto &i : led_pin_arr)
+    {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
+}
+
+void LedControl::updateLed(void)
+{
+    // Shift the led state arr / mask to one position
+    std::rotate(led_state_arr.begin(), led_state_arr.begin() + 1, led_state_arr.end());
+    // Apply de led state arr to each pin
+    for (std::vector<int>::size_type i = 0; i != led_pin_arr.size(); i++)
+    {
+        digitalWrite(led_pin_arr[i], led_state_arr[i]);
+    }
 }
 
 LedControl led_controller; // Instance of LedControl class
