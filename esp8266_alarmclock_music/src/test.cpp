@@ -322,6 +322,10 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         if (!strcmp(topic, mqttFullTopic("lampFreq")))
         {
             stopPlaying(); // Etienne : Do someting with lamp message payload!
+            Serial.println(newMsg);
+            led_controller.GetMqttUpdate(newMsg);
+            Serial.println(led_controller.state);
+            Serial.println(led_controller.period_milli);
         }
     }
 }

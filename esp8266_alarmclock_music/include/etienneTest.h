@@ -28,7 +28,6 @@ int sensorValue = 30000;  // variable to store the value coming from the sensor
 unsigned long refreshTime = 30000;
 unsigned long previousMillis = 0;
 unsigned long previousMillisLED = 0;
-int counter = 1;
 
 // Etienne's Functions -------------
 void updateEtiClock(void)
@@ -49,26 +48,76 @@ void updateLedRed(void)
     if (currentMillis - previousMillisLED >= sensorValue)
     {
         sensorValue = 30 * analogRead(sensorPin);
-        Serial.println("========");
-        Serial.print("sensorValue is : ");
-        Serial.println(sensorValue);
-        Serial.print("counterValue is : ");
-        Serial.println(counter);
-
-        if (counter % 2 == 0)
+        if (digitalRead(red_led) == LOW)
         {
             digitalWrite(red_led, HIGH);
             digitalWrite(blue_led, LOW);
-            Serial.println("Red");
         }
         else
         {
             digitalWrite(red_led, LOW);
             digitalWrite(blue_led, HIGH);
-            Serial.println("Blue");
         }
 
-        counter += 1;
         previousMillisLED = currentMillis; // Remember the time
     }
 }
+
+enum LedControlState
+{
+    IDLE,
+    LED_OVERLAP,
+    LED_NO_OVERLAP,
+    RESETTING,
+    NB_STATES
+};
+
+class LedControl
+{
+public:
+    LedControlState state = IDLE;
+    int period_milli = 10000;
+    const int pin_blue = D1;
+    const int pin_green = D2;
+    const int pin_white = D3;
+    unsigned long previous_millis = 0; // TODO check for better time counter, what happen when overflow?
+    std::string mqtt_topic = "emptyStr";
+
+    // Constructor
+    LedControl();
+    LedControl(int t_blue_pin, int t_green_pin, int t_white_pin, std::string t_mqtt_topic);
+
+    // Methods
+    void GetMqttUpdate(char t_payload_led[]);
+};
+
+LedControl::LedControl() = default;
+
+LedControl::LedControl(int t_blue_pin, int t_green_pin, int t_white_pin, std::string t_mqtt_topic)
+    : pin_blue(t_blue_pin),
+      pin_green(t_green_pin), pin_white(t_white_pin), mqtt_topic(t_mqtt_topic)
+{
+}
+
+void LedControl::GetMqttUpdate(char t_payload_led[])
+{
+    char *temp_token = strtok(t_payload_led, ",");
+    int temp_int;
+    sscanf(temp_token, "%d", &temp_int);
+
+    if (temp_int <= NB_STATES)
+    {
+        state = static_cast<LedControlState>(temp_int);
+    }
+    else
+    {
+        state = IDLE; // TODO : Put at RESET state?? And throw error??
+        Serial.println("Wrong State from MQTT");
+    }
+
+    temp_token = strtok(NULL, ",");
+    sscanf(temp_token, "%d", &temp_int);
+    period_milli = temp_int;
+}
+
+LedControl led_controller; // Instance of LedControl class
