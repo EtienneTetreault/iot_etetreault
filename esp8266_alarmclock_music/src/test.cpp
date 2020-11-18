@@ -323,8 +323,8 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         {
             stopPlaying(); // Etienne : Do someting with lamp message payload!
             Serial.println(newMsg);
-            led_controller.GetMqttUpdate(newMsg);
-            Serial.println(led_controller.state);
+            led_controller.getMqttUpdate(newMsg);
+            Serial.println(led_controller.state_control);
             Serial.println(led_controller.period_milli);
         }
     }

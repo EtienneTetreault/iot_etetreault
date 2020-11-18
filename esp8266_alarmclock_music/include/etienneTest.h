@@ -75,11 +75,14 @@ enum LedControlState
 class LedControl
 {
 public:
-    LedControlState state = IDLE;
+    LedControlState state_control = IDLE;
     int period_milli = 10000;
     const int pin_blue = D1;
     const int pin_green = D2;
     const int pin_white = D3;
+    int state_blue = LOW;
+    int state_green = LOW;
+    int state_white = LOW;
     unsigned long previous_millis = 0; // TODO check for better time counter, what happen when overflow?
     std::string mqtt_topic = "emptyStr";
 
@@ -88,7 +91,8 @@ public:
     LedControl(int t_blue_pin, int t_green_pin, int t_white_pin, std::string t_mqtt_topic);
 
     // Methods
-    void GetMqttUpdate(char t_payload_led[]);
+    void getMqttUpdate(char t_payload_led[]);
+    void setUpInitialize(void);
 };
 
 LedControl::LedControl() = default;
@@ -99,25 +103,36 @@ LedControl::LedControl(int t_blue_pin, int t_green_pin, int t_white_pin, std::st
 {
 }
 
-void LedControl::GetMqttUpdate(char t_payload_led[])
+void LedControl::getMqttUpdate(char t_payload_led[])
 {
+    // First token/part of string is the state_control
     char *temp_token = strtok(t_payload_led, ",");
     int temp_int;
     sscanf(temp_token, "%d", &temp_int);
-
     if (temp_int <= NB_STATES)
     {
-        state = static_cast<LedControlState>(temp_int);
+        state_control = static_cast<LedControlState>(temp_int);
     }
     else
     {
-        state = IDLE; // TODO : Put at RESET state?? And throw error??
-        Serial.println("Wrong State from MQTT");
+        state_control = IDLE; // TODO : Put at RESET state_control?? And throw error??
+        Serial.println("Wrong State_control from MQTT");
     }
 
+    // Second token/part of string is the period require
     temp_token = strtok(NULL, ",");
     sscanf(temp_token, "%d", &temp_int);
     period_milli = temp_int;
+}
+
+void LedControl::setUpInitialize(void)
+{
+    pinMode(pin_blue, OUTPUT);
+    pinMode(pin_green, OUTPUT);
+    pinMode(pin_white, OUTPUT);
+    digitalWrite(pin_blue, LOW);
+    digitalWrite(pin_green, LOW);
+    digitalWrite(pin_white, LOW);
 }
 
 LedControl led_controller; // Instance of LedControl class
