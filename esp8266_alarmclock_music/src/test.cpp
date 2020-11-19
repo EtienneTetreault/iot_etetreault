@@ -325,7 +325,7 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
             Serial.println(newMsg);
             led_controller.getMqttUpdate(newMsg);
             Serial.println(led_controller.state_control);
-            Serial.println(led_controller.period_milli);
+            Serial.println(led_controller.period_millis);
         }
     }
 }
@@ -439,7 +439,6 @@ void setup()
     display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // To test?? Etienne
     Serial.begin(115200);
     led_controller.setUpInitialize();
-    led_controller.led_state_arr = {1, 1, 0};
 
 #ifdef DEBUG_FLAG
     Serial.begin(115200);
@@ -488,13 +487,7 @@ void loop()
 {
     // Etienne's loop ---------------------------
     updateEtiClock();
-
-    unsigned long currentMillis = millis();
-    if (currentMillis - led_controller.previous_millis >= led_controller.period_milli)
-    {
-        led_controller.updateLed();
-        led_controller.previous_millis = currentMillis; // Remember the time
-    }
+    led_controller.loopTimer();
 
     mqttReconnect();
     mqttClient.loop();
