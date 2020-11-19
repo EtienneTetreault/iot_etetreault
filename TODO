@@ -1,12 +1,16 @@
 
 Todo:
-  ☐ Create class for LED and Clock timing managment
-  ☐ Check for the use of interupt
-  ☐ Go See State machine on PX4 : Takeoff on runway exemple!
-  ☐ Class object : Initialisation method (set default value) VS default value in declaration / constructor
-  ☐ On remote, creatte MQTT message
+  ☐ On remote, creatte MQTT message to broadcast State and Warning
   ☐ On node red : create state machine and set-reset logic for alarm
   ☐ On node red : clean up !!
+  ☐ Move Timing constant and method to he main cpp.
+  ☐ Rename files in Github and delete the env:test vs env:main. Keep only d1_test
 
 Done:
   ✔ Check for DigitalWrite vs AnalogWrite and noise on speaker @done(20-11-16 13:10)
+  ✔ Go See State machine on PX4 : Takeoff on runway exemple! @done(20-11-19 10:16)
+  ✔ Check for the use of interupt :"Too dangerous with the use of PWM simultaneously" @done(20-11-19 10:16)
+  ✔ Class object : Initialisation method (set default value) VS default value in declaration / constructor : " Set default in class declaration if commun to all constructor, and set in the constructor for default value specific (for multiple, complexe constructor...) @done(20-11-19 10:17)
+  ✔ Create class for LED @done(20-11-19 10:18)
+
+

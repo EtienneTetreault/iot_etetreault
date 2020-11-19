@@ -14,8 +14,7 @@ Group changes to describe their impact on the project, as follows:
 
 ## [Unreleased]
 ### Added
-- First one!?!
-- Second one??
+- Class LedController to manage Led On/Off, timers and messages from MQTT.
 
 ### Changed
 - Change LED control from AnalogWrite to DigitalWrite. Without the use of PWM, the led doesnt create noise in the speaker et their refresh speed doesnt seems the slow down the music playing from MQTT
