@@ -9,9 +9,6 @@ Futur Comments here. */
 #include <TM1637Display.h> // LED display, name of the onboard MCU
 
 // Etienne's declaration  ---------------------------
-const int red_led = D2;  //define what pin the red led is connected to
-const int blue_led = D3; //define what pin the blue led is connected to
-
 const long utcOffsetInSeconds = -18000;
 WiFiUDP ntpUDP; // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
@@ -19,10 +16,6 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 const int CLK = D6;              //Set the CLK pin connection to the display
 const int DIO = D5;              //Set the DIO pin connection to the display
 TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
-
-const int sensorPin = A0; // select the input pin for the potentiometer
-const int clickPin = D8;  // Push button link to pullUp pin
-int sensorValue = 30000;  // variable to store the value coming from the sensor
 
 // unsigned long refreshTime;
 unsigned long refreshTime = 30000;
@@ -42,27 +35,6 @@ void updateEtiClock(void)
     }
 }
 
-void updateLedRed(void)
-{
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillisLED >= sensorValue)
-    {
-        sensorValue = 30 * analogRead(sensorPin);
-        if (digitalRead(red_led) == LOW)
-        {
-            digitalWrite(red_led, HIGH);
-            digitalWrite(blue_led, LOW);
-        }
-        else
-        {
-            digitalWrite(red_led, LOW);
-            digitalWrite(blue_led, HIGH);
-        }
-
-        previousMillisLED = currentMillis; // Remember the time
-    }
-}
-
 enum LedControlState
 {
     IDLE,
@@ -77,12 +49,6 @@ class LedControl
 public:
     LedControlState state_control = IDLE;
     int period_milli = 5000;
-    const int pin_blue = D1;
-    const int pin_green = D2;
-    const int pin_white = D3;
-    int state_blue = LOW;
-    int state_green = LOW;
-    int state_white = LOW;
     unsigned long previous_millis = 0; // TODO check for better time counter, what happen when overflow?
     std::string mqtt_topic = "emptyStr";
     std::vector<int> led_pin_arr = {D4, D2, D3};
@@ -90,7 +56,7 @@ public:
 
     // Constructor
     LedControl();
-    LedControl(int t_blue_pin, int t_green_pin, int t_white_pin, std::string t_mqtt_topic);
+    LedControl(std::vector<int> led_pin_arr, std::string t_mqtt_topic);
 
     // Methods
     void getMqttUpdate(char t_payload_led[]);
@@ -100,9 +66,8 @@ public:
 
 LedControl::LedControl() = default;
 
-LedControl::LedControl(int t_blue_pin, int t_green_pin, int t_white_pin, std::string t_mqtt_topic)
-    : pin_blue(t_blue_pin),
-      pin_green(t_green_pin), pin_white(t_white_pin), mqtt_topic(t_mqtt_topic)
+LedControl::LedControl(std::vector<int> t_led_pin_arr, std::string t_mqtt_topic)
+    : led_pin_arr(t_led_pin_arr), mqtt_topic(t_mqtt_topic)
 {
 }
 
@@ -130,12 +95,6 @@ void LedControl::getMqttUpdate(char t_payload_led[])
 
 void LedControl::setUpInitialize(void)
 {
-    pinMode(pin_blue, OUTPUT);
-    pinMode(pin_green, OUTPUT);
-    pinMode(pin_white, OUTPUT);
-    digitalWrite(pin_blue, LOW);
-    digitalWrite(pin_green, LOW);
-    digitalWrite(pin_white, LOW);
 
     for (auto &i : led_pin_arr)
     {
@@ -148,6 +107,7 @@ void LedControl::updateLed(void)
 {
     // Shift the led state arr / mask to one position
     std::rotate(led_state_arr.begin(), led_state_arr.begin() + 1, led_state_arr.end());
+
     // Apply de led state arr to each pin
     for (std::vector<int>::size_type i = 0; i != led_pin_arr.size(); i++)
     {

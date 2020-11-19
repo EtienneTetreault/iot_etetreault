@@ -437,7 +437,6 @@ void setup()
     display.clear();
     display.setBrightness(7);                               // Set the brightness:
     display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // To test?? Etienne
-    pinMode(clickPin, INPUT_PULLUP);
     Serial.begin(115200);
     led_controller.setUpInitialize();
     led_controller.led_state_arr = {1, 1, 0};
