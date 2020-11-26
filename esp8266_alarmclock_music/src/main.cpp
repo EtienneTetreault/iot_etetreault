@@ -97,7 +97,7 @@ https://gitlab.com/MrDIYca/mrdiy-audio-notifier
 #include <NTPClient.h>     // Network Time Protocol, client
 #include <WiFiUdp.h>       // handles sending and receiving of UDP packages
 #include <TM1637Display.h> // LED display, name of the onboard MCU
-#include "etienneTest.h"
+#include "LedControl.h"
 
 AudioGeneratorMP3 *mp3 = NULL;
 AudioGeneratorWAV *wav = NULL;
