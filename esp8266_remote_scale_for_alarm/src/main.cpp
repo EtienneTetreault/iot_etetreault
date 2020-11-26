@@ -1,15 +1,14 @@
 #include <Arduino.h>
-
 #include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino
-
 //needed for library
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 #include <PubSubClient.h>
+#include <secret.h>
 
 // Change the variable to your Raspberry Pi IP address, so it connects to your MQTT broker
-const char *mqtt_server = "IP_ADRESS";
+const char *mqtt_server = secret_ip_mqtt;
 // Initializes the espClient. You should change the espClient name if you have multiple ESPs running in your home automation system
 WiFiClient espClient;
 PubSubClient mqttclient(espClient);
