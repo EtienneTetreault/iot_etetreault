@@ -93,6 +93,10 @@ https://gitlab.com/MrDIYca/mrdiy-audio-notifier
 #endif
 #include "ESP8266SAM.h"
 #include "IotWebConf.h"
+// Etienne's library ---------------------------
+#include <NTPClient.h>     // Network Time Protocol, client
+#include <WiFiUdp.h>       // handles sending and receiving of UDP packages
+#include <TM1637Display.h> // LED display, name of the onboard MCU
 #include "etienneTest.h"
 
 AudioGeneratorMP3 *mp3 = NULL;
@@ -146,6 +150,20 @@ IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password",
 IotWebConfParameter mqttTopicParam = IotWebConfParameter("MQTT Topic", "mqttTopic", mqttTopicPrefix, sizeof(mqttTopicPrefix));
 
 // #define LED_Pin 12 // external LED pin
+
+// Etienne's declaration  ---------------------------
+LedControl led_controller({D2, D3, D4}, "mqttLedState"); // Instance of LedControl class
+
+const long utcOffsetInSeconds = -18000;
+WiFiUDP ntpUDP;                                                   // Define NTP Client to get time
+NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds); // Instance of timeclock client
+
+const int CLK = D6;              //Set the CLK pin connection to the display
+const int DIO = D5;              //Set the DIO pin connection to the display
+TM1637Display display(CLK, DIO); // Instance of clock display class
+
+unsigned long clock_refresh_period = 30000;
+unsigned long clock_prev_millis = 0;
 
 // Forward function declaration for MrDYI Audio Notifiyer
 void updateLEDBrightness(int);
@@ -319,13 +337,9 @@ void onMqttMessage(char *topic, byte *payload, unsigned int mlength)
         }
 
         // got a stop request  --------------------------------------------------
-        if (!strcmp(topic, mqttFullTopic("lampFreq")))
+        if (!strcmp(topic, mqttFullTopic(led_controller.mqtt_topic.c_str())))
         {
-            stopPlaying(); // Etienne : Do someting with lamp message payload!
-            Serial.println(newMsg);
             led_controller.getMqttUpdate(newMsg);
-            Serial.println(led_controller.state_control);
-            Serial.println(led_controller.period_millis);
         }
     }
 }
@@ -373,7 +387,7 @@ void mqttReconnect()
             mqttClient.subscribe(mqttFullTopic("say"));
             mqttClient.subscribe(mqttFullTopic("stop"));
             mqttClient.subscribe(mqttFullTopic("volume"));
-            mqttClient.subscribe(mqttFullTopic("lampFreq")); //Etienne subs MQTT
+            mqttClient.subscribe(mqttFullTopic(led_controller.mqtt_topic.c_str())); //Etienne subs MQTT
 #ifdef DEBUG_FLAG
             Serial.println(F("Connected to MQTT"));
 #endif
@@ -426,6 +440,20 @@ char *mqttFullTopic(const char action[])
     strcat(mqttTopic, "/");
     strcat(mqttTopic, action);
     return mqttTopic;
+}
+
+/* ########################## Etienne Clock display refresh function ######################################### */
+
+void updateEtiClock(void)
+{
+    unsigned long clock_current_millis = millis();
+    if (clock_current_millis - clock_prev_millis >= clock_refresh_period)
+    {
+        timeClient.update();
+        int timeNow = timeClient.getHours() * 100 + timeClient.getMinutes();
+        display.showNumberDecEx(timeNow, 0b01000000, false, 4, 0);
+        clock_prev_millis = clock_current_millis; // Remember the time
+    }
 }
 
 /* ################################## Setup ############################################# */

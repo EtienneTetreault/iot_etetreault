@@ -3,37 +3,6 @@ Header file for class and constant
 For custom function for Etienne's clock 
 Futur Comments here. */
 
-// Etienne's library ---------------------------
-#include <NTPClient.h>     // Network Time Protocol, client
-#include <WiFiUdp.h>       // handles sending and receiving of UDP packages
-#include <TM1637Display.h> // LED display, name of the onboard MCU
-
-// Etienne's declaration  ---------------------------
-const long utcOffsetInSeconds = -18000;
-WiFiUDP ntpUDP; // Define NTP Client to get time
-NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
-
-const int CLK = D6;              //Set the CLK pin connection to the display
-const int DIO = D5;              //Set the DIO pin connection to the display
-TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
-
-// unsigned long refreshTime;
-unsigned long refreshTime = 30000;
-unsigned long previousMillis = 0;
-
-// Etienne's Functions -------------
-void updateEtiClock(void)
-{
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= refreshTime)
-    {
-        timeClient.update();
-        int timeNow = timeClient.getHours() * 100 + timeClient.getMinutes();
-        display.showNumberDecEx(timeNow, 0b01000000, false, 4, 0);
-        previousMillis = currentMillis; // Remember the time
-    }
-}
-
 enum LedControlState
 {
     IDLE,
@@ -51,13 +20,13 @@ public:
     unsigned long previous_millis = 0; // TODO check for better time counter, what happen when overflow?
     std::vector<int> led_state_arr = {0, 0, 0};
 
-    // Constant attributes
+    // Constant attributes + To Set by user
     const std::vector<int> led_pin_arr = {D4, D2, D3};
-    const std::string mqtt_topic = "emptyStr"; // TODO : Integrate mqtt topic from class to the broker
+    const std::string mqtt_topic = "mqttLedState"; // TODO : Integrate mqtt topic from class to the broker
 
     // Constructor
     LedControl();
-    LedControl(std::vector<int> led_pin_arr, std::string t_mqtt_topic);
+    LedControl(std::vector<int> led_pin_arr, const std::string t_mqtt_topic);
 
     // Methods
     void getMqttUpdate(char t_payload_led[]);
@@ -69,7 +38,7 @@ public:
 
 LedControl::LedControl() = default;
 
-LedControl::LedControl(std::vector<int> t_led_pin_arr, std::string t_mqtt_topic)
+LedControl::LedControl(std::vector<int> t_led_pin_arr, const std::string t_mqtt_topic)
     : led_pin_arr(t_led_pin_arr), mqtt_topic(t_mqtt_topic)
 {
 }
@@ -103,7 +72,6 @@ void LedControl::setStateControl(int t_int_of_req_state)
         Serial.println("Wrong State_control from MQTT");
     }
 
-    // state_control = t_state_to_set;
     // Set required attributes according to state machine
     switch (state_control)
     {
@@ -167,5 +135,3 @@ void LedControl::loopTimer(void)
         }
     }
 }
-
-LedControl led_controller; // Instance of LedControl class
