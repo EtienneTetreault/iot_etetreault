@@ -15,6 +15,8 @@ Group changes to describe their impact on the project, as follows:
 ## [Unreleased]
 ### Added
 - Class LedController to manage Led On/Off, timers and messages from MQTT.
+- Creation of alarmclock state machine with Xstate npm package and implementation in NodeRed function node.
+- In NodeRed, main alarm/timer for clock is manage by a user-contrib node and is integrated with UI.
 
 ### Changed
 - Change LED control from AnalogWrite to DigitalWrite. Without the use of PWM, the led doesnt create noise in the speaker et their refresh speed doesnt seems the slow down the music playing from MQTT
