@@ -1,6 +1,5 @@
 const XState = require('xstate');
 // const XState = global.get('xstate');
-
 const alarmClockMachine = XState.Machine(
     {
         id: 'alarmClock',
@@ -11,7 +10,7 @@ const alarmClockMachine = XState.Machine(
             alarm_a: {
                 entry: ['set_alarm_a_msg'],
                 after: {
-                    5000: { target: 'alarm_b', actions: "refresh" }
+                    10000: { target: 'alarm_b', actions: "refresh" }
                 },
                 on: { STOP: 'clean_up', REPLAY_ALARM: { actions: 'set_alarm_a_msg' } }
             },
@@ -29,37 +28,22 @@ const alarmClockMachine = XState.Machine(
         actions: {
             set_alarm_a_msg: (context, event) => {
                 node.send({
-                    topic: "mrdiynotifier/play",
-                    payload: 'http://192.168.2.100:8001/toShare/radiohead.mp3',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "mrdiynotifier/mqttLedState",
-                    payload: '1,10000',
+                    topic: "esparkle/in",
+                    payload: { "etienne_led": "1,500", "mp3": "http://ais-edge16-jbmedia-nyc04.cdnstream.com/hot108" },
                     state: alarmClockService.state.value
                 });
             },
             set_alarm_b_msg: (context, event) => {
                 node.send({
-                    topic: "mrdiynotifier/stream",
-                    payload: 'http://ais-edge16-jbmedia-nyc04.cdnstream.com/hot108',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "mrdiynotifier/mqttLedState",
-                    payload: '2,1000',
+                    topic: "esparkle/in",
+                    payload: { "etienne_led": "2,1000", "mp3": "http://192.168.2.100:8001/toShare/radiohead.mp3" },
                     state: alarmClockService.state.value
                 });
             },
             set_clean_up_msg: (context, event) => {
                 node.send({
-                    topic: "mrdiynotifier/stop",
-                    payload: '',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "mrdiynotifier/mqttLedState",
-                    payload: '3,5000',
+                    topic: "esparkle/in",
+                    payload: { "etienne_led": "3,5000", "cmd": "break" },
                     state: alarmClockService.state.value
                 });
                 node.send({

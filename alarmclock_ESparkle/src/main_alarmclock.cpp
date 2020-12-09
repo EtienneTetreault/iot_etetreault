@@ -1,4 +1,10 @@
-//  See https://github.com/CosmicMac/ESParkle
+//  Inspired of See https://github.com/CosmicMac/ESParkle
+
+/*  
+Deleted some functionnality, see later if require :
+- Accelerometer control : Na...
+- LED control with hardcoded pattern via FastLed library : 
+*/
 
 //#define USE_I2S                 // uncomment to use extenral I2S DAC
 
@@ -7,11 +13,10 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <MPU6050.h>
+// #include <MPU6050.h>
 #include <FastLED.h>
 #include <Ticker.h>
 #include <AudioFileSourceHTTPStream.h>
-#include "AudioFileSourceICYStream.h"
 #include <AudioFileSourceSPIFFS.h>
 #include <AudioFileSourcePROGMEM.h>
 #include <AudioFileSourceBuffer.h>
@@ -32,6 +37,7 @@
 
 // Etienne's declaration  ---------------------------
 LedControl led_controller({D2, D3, D4}, "mqttLedState"); // Instance of LedControl class
+char led_payload[32] = "";
 
 const long utcOffsetInSeconds = -18000;
 WiFiUDP ntpUDP;                                                   // Define NTP Client to get time
@@ -42,13 +48,13 @@ const int DIO = D5;              //Set the DIO pin connection to the display
 TM1637Display display(CLK, DIO); // Instance of clock display class
 
 unsigned long clock_refresh_period = 30000;
-unsigned long clock_prev_millis = 0;
+unsigned long lastClockMillis = 0;
+unsigned long lastDebugMillis = 0;
 
 // Misc global variables
 bool otaInProgress = false;
 bool ledActionInProgress = false;
 bool newAudioSource = false;
-volatile bool mpuInterrupt = false;
 
 CRGB leds[NUM_LEDS];
 int curColor;
@@ -62,10 +68,8 @@ ESP8266WiFiMulti wifiMulti;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker ledActionTimer;
-MPU6050 mpu;
 
 AudioFileSourceHTTPStream *stream = nullptr;
-AudioFileSourceICYStream *online_stream = nullptr;
 AudioFileSourceSPIFFS *file = nullptr;
 AudioFileSourceBuffer *buff = nullptr;
 AudioFileSourcePROGMEM *string = nullptr;
@@ -130,28 +134,13 @@ void setup()
   });
   ArduinoOTA.begin();
 
-  // INIT MPU
-  Wire.begin();
-  Serial.println(F("Initializing MPU6050..."));
-  mpu.initialize();
-  if (mpu.testConnection())
-  {
-    Serial.println(F("MPU6050 connection successful"));
-    mpu.setIntMotionEnabled(true);
-    mpu.setMotionDetectionThreshold(MOTION_DETECTION_THRESHOLD);
-    mpu.setMotionDetectionDuration(MOTION_DETECTION_DURATION);
-    attachInterrupt(digitalPinToInterrupt(MPU_INTERRUPT_PIN), ISRoutine, RISING);
-  }
-  else
-  {
-    Serial.println(F("MPU6050 connection failed"));
-  }
-
   // INIT LED
+  // Etienne : Comment out Led decision and application from ESParkle. Use later?
+  /* 
   LEDS.addLeds<LED_TYPE, LED_DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(max_bright);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
-  ledDefault();
+  ledDefault(); */
 
   // Etienne's setup ---------------------------
   timeClient.begin();
@@ -159,7 +148,6 @@ void setup()
   display.setBrightness(7);                               // Set the brightness:
   display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // To test?? Etienne
   led_controller.setUpInitialize();
-  led_controller.getMqttUpdate("1,100");
 }
 
 //############################################################################
@@ -168,38 +156,39 @@ void setup()
 
 void loop()
 {
-  led_controller.loopTimer();
-
   unsigned long curMillis = millis();
 
-  if (curMillis - clock_prev_millis >= clock_refresh_period)
+  // Etienne LedControl.h object main loop
+  led_controller.loopTimer();
+
+  // Etienne Display Clock main loop
+  if (curMillis - lastClockMillis >= clock_refresh_period)
   {
     timeClient.update();
     int timeNow = timeClient.getHours() * 100 + timeClient.getMinutes();
     display.showNumberDecEx(timeNow, 0b01000000, false, 4, 0);
-    clock_prev_millis = curMillis; // Remember the time
+    lastClockMillis = curMillis; // Remember the time
+  }
+
+  if (curMillis - lastDebugMillis >= 2000)
+  {
+    Serial.printf_P(PSTR("\nFree heap: %d\n"), ESP.getFreeHeap());
+    lastDebugMillis = curMillis; // Remember the time
   }
 
   // HANDLE Wifi
-
   static unsigned long lastWifiMillis = 0;
   bool wifiIsConnected = WiFi.isConnected();
   if (!wifiIsConnected)
   {
     stopPlaying();
-    /*
-        if (mp3 && mp3->isRunning()) {
-            mp3->stop();
-        } else if (rtttl && rtttl->isRunning()) {
-            rtttl->stop();
-        }
-        */
-    ledBlink(50, 0xFF0000);
+
+    // ledBlink(50, 0xFF0000);
     if (curMillis - lastWifiMillis > 60000)
     {
       if (wifiConnect())
       {
-        ledDefault();
+        // ledDefault();
       }
       lastWifiMillis = curMillis;
     }
@@ -234,62 +223,6 @@ void loop()
     }
   }
 
-  // HANDLE MPU
-  static unsigned long lastMpuTapMillis = 0;
-  static uint8_t mpuTapCount = 0;
-  if (mpuInterrupt)
-  {
-    mpuInterrupt = false;
-    if (curMillis - lastMpuTapMillis > MPU_INTERRUPT_INTERVAL_MS)
-    {
-
-      // Handle multi-tap
-      if (curMillis - lastMpuTapMillis > MPU_MULTITAP_INTERVAL_MS)
-      {
-        mpuTapCount = 0;
-      }
-      Serial.printf_P(PSTR("MPU interrupt %d\n"), ++mpuTapCount);
-
-      if (mpuTapCount == MPU_MULTITAP_RESTART)
-      {
-        beep();
-        Serial.println(F("Restarting ESP..."));
-        ESP.restart();
-        delay(500);
-      }
-
-      if (mpuTapCount < 3)
-      {
-        // If something is running, stop it...
-        bool stopped = stopPlaying();
-        /*
-                if (mp3 && mp3->isRunning()) {
-                    mp3->stop();
-                    stopped = true;
-                } else if (rtttl && rtttl->isRunning()) {
-                    rtttl->stop();
-                    stopped = true;
-                }
-                */
-
-        if (ledActionInProgress)
-        {
-          msgPriority = 0;
-          ledDefault();
-          stopped = true;
-        }
-
-        // ...otherwise, play random MP3 from stream
-        if (!stopped)
-        {
-          strlcpy(audioSource, RANDOM_STREAM_URL, sizeof(audioSource));
-          newAudioSource = true;
-        }
-      }
-      lastMpuTapMillis = curMillis;
-    }
-  }
-
   // HANDLE MP3
   if (newAudioSource)
   {
@@ -316,15 +249,6 @@ void loop()
 
   // HANDLE LED
   FastLED.show();
-}
-
-//############################################################################
-// ISRoutine
-//############################################################################
-
-void ISRoutine()
-{
-  mpuInterrupt = true;
 }
 
 //############################################################################
@@ -373,6 +297,7 @@ bool mqttConnect(bool about)
       mqttClient.publish(MQTT_OUT_TOPIC, PSTR("Reconnected to MQTT"));
     }
     mqttClient.subscribe(MQTT_IN_TOPIC);
+    mqttClient.subscribe(led_controller.mqtt_topic.c_str());
   }
   else
   {
@@ -383,7 +308,6 @@ bool mqttConnect(bool about)
 
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
-
   StaticJsonBuffer<512> jsonInBuffer;
   JsonObject &json = jsonInBuffer.parseObject(payload);
 
@@ -395,6 +319,13 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 
   json.printTo(Serial);
   Serial.println();
+
+  //Etienne led MQTT to controler
+  if (json.containsKey("etienne_led"))
+  {
+    strlcpy(led_payload, json["etienne_led"], sizeof(led_payload));
+    led_controller.getMqttUpdate(led_payload);
+  }
 
   // Simple commands
   if (json.containsKey("cmd"))
@@ -409,11 +340,12 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
                 rtttl->stop();
             }
              */
-      if (ledActionInProgress)
-      {
-        msgPriority = 0;
-        ledDefault();
-      }
+      // Etienne comment out
+      // if (ledActionInProgress)
+      // {
+      //   msgPriority = 0;
+      //   ledDefault();
+      // }
     }
     else if (strcmp("restart", json["cmd"]) == 0)
     { // Restart ESP: {cmd:"restart"}
@@ -496,6 +428,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     msgPriority = thisPriority;
   }
 
+  // Etienne : Comment out Led decision and application from ESParkle. Use later?
+  /* 
   // Set led pattern: {"led":"Blink",color:"0xff0000",delay:50}
   if (json.containsKey("led"))
   {
@@ -544,6 +478,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
       ledDefault();
     }
   }
+   */
 }
 
 /**
@@ -551,10 +486,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
  */
 void mqttCmdAbout()
 {
-
-  char uptimeBuffer[15];
-  getUptimeDhms(uptimeBuffer, sizeof(uptimeBuffer));
-
   String freeSpace;
   prettyBytes(ESP.getFreeSketchSpace(), freeSpace);
 
@@ -585,7 +516,6 @@ void mqttCmdAbout()
   jsonRoot[F("sketchSize")] = sketchSize;
   jsonRoot[F("freeSpace")] = freeSpace;
   jsonRoot[F("freeHeap")] = freeHeap;
-  jsonRoot[F("uptime")] = uptimeBuffer;
   jsonRoot[F("defaultGain")] = defaultGain;
 
   String mqttMsg;
@@ -644,28 +574,12 @@ void playAudio()
   out->SetGain(onceGain ?: defaultGain);
   onceGain = 0;
 
-  if (strncmp("http://192", audioSource, 10) == 0)
+  if (strncmp("http", audioSource, 4) == 0)
   {
     // Get MP3 from stream
-    Serial.printf_P(PSTR("**MP3 local stream: %s\n"), audioSource);
+    Serial.printf_P(PSTR("**MP3 stream: %s\n"), audioSource);
     stream = new AudioFileSourceHTTPStream(audioSource);
     buff = new AudioFileSourceBuffer(stream, 1024 * 2);
-    //buff = new AudioFileSourceBuffer(stream, preallocateBuffer, preallocateBufferSize);
-    mp3 = new AudioGeneratorMP3();
-    mp3->begin(buff, out);
-    if (!mp3->isRunning())
-    {
-      //Serial.println(F("Unable to play MP3"));
-      stopPlaying();
-    }
-  }
-  // Etienne Test : Stream from internet
-  else if (strncmp("http", audioSource, 4) == 0)
-  {
-    // Get MP3 from stream
-    Serial.printf_P(PSTR("**MP3 online stream: %s\n"), audioSource);
-    online_stream = new AudioFileSourceICYStream(audioSource);
-    buff = new AudioFileSourceBuffer(online_stream, 1024 * 2);
     //buff = new AudioFileSourceBuffer(stream, preallocateBuffer, preallocateBufferSize);
     mp3 = new AudioGeneratorMP3();
     mp3->begin(buff, out);
@@ -738,6 +652,12 @@ bool stopPlaying()
     delete stream;
     stream = nullptr;
   }
+  if (string)
+  {
+    string->close();
+    delete string;
+    string = nullptr;
+  }
 
   return stopped;
 }
@@ -775,30 +695,12 @@ void tts(String text, String voice)
   }
 }
 
-void beep(uint8_t repeat)
-{
-  strlcpy(audioSource, "/mp3/nasty-error-long.mp3", sizeof(audioSource));
-
-  for (uint8_t i = 0; i < repeat; i++)
-  {
-    playAudio();
-    while (mp3->isRunning())
-    {
-      if (!mp3->loop())
-      {
-        //mp3->stop();
-        stopPlaying();
-        //Serial.println(F("MP3 done"));
-      }
-      yield();
-    }
-  }
-}
-
 //############################################################################
 // LED
 //############################################################################
-void ledDefault(uint32_t delay)
+
+// Etienne : Comment out Led decision and application from ESParkle. Use later?
+/* void ledDefault(uint32_t delay)
 {
 
   ledActionTimer.detach();
@@ -910,7 +812,7 @@ void ledOff()
 {
   ledSolid(0x000000);
 }
-
+ */
 //############################################################################
 // HELPERS
 //############################################################################
@@ -935,30 +837,4 @@ void prettyBytes(uint32_t bytes, String &output)
   {
     output = String(round(count * 10.0) / 10.0, 1) + suffixes[s];
   };
-}
-
-uint32_t getUptimeSecs()
-{
-  static uint32_t uptime = 0;
-  static uint32_t previousMillis = 0;
-  uint32_t now = millis();
-
-  uptime += (now - previousMillis) / 1000UL;
-  previousMillis = now;
-  return uptime;
-}
-
-void getUptimeDhms(char *output, size_t max_len)
-{
-  uint32 d, h, m, s;
-  uint32_t sec = getUptimeSecs();
-
-  d = sec / 86400;
-  sec = sec % 86400;
-  h = sec / 3600;
-  sec = sec % 3600;
-  m = sec / 60;
-  s = sec % 60;
-
-  snprintf(output, max_len, "%dd %02d:%02d:%02d", d, h, m, s);
 }

@@ -2,7 +2,7 @@
 Header file for class and constant
 For custom function for Etienne's clock 
 Futur Comments here. */
-uint8_t emptyVar;
+
 enum LedControlState
 {
     IDLE,

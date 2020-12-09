@@ -1,15 +1,12 @@
 #ifndef ESPARKLE_H
 #define ESPARKLE_H
 
-void ICACHE_RAM_ATTR ISRoutine();
-uint8_t emptyVar2;
-
+// Mostly forward declaration of functions use in main.cpp
 bool wifiConnect();
 
 void playAudio();
 bool stopPlaying();
 void tts(String text, String voice);
-void beep(uint8_t repeat = 1);
 
 bool mqttConnect(bool about = false);
 void mqttCallback(char *topic, byte *payload, unsigned int length);
@@ -26,6 +23,4 @@ void ledSolid(int color);
 void ledOff();
 
 void prettyBytes(uint32_t bytes, String &output);
-uint32_t getUptimeSecs();
-void getUptimeDhms(char *output, size_t max_len);
 #endif //ESPARKLE_H
