@@ -1,18 +1,23 @@
 {
 	"folders": [
 		{
-			"path": "esp8266_remote_scale_for_alarm"
-		},
-		{
-			"path": "esp8266_alarmclock_music"
-		},
-		{
+			"name": "iot_etetreault",
 			"path": "."
 		},
 		{
+			"name": "esp8266_remote_scale_for_alarm",
+			"path": "esp8266_remote_scale_for_alarm"
+		},
+		{
+			"name": "esp8266_alarmclock_music",
+			"path": "esp8266_alarmclock_music"
+		},
+		{
+			"name": "node_red_script",
 			"path": "node_red_script"
 		},
 		{
+			"name": "alarmclock_ESparkle",
 			"path": "alarmclock_ESparkle"
 		}
 	],
