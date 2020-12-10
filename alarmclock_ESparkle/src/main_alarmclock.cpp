@@ -145,7 +145,7 @@ void setup()
   // Etienne's setup ---------------------------
   timeClient.begin();
   display.clear();
-  display.setBrightness(7);                               // Set the brightness:
+  display.setBrightness(1);                               // Set the brightness:
   display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // To test?? Etienne
   led_controller.setUpInitialize();
 }
