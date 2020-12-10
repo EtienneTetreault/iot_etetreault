@@ -1,87 +1,7 @@
 const XState = require('xstate');
 // const XState = global.get('xstate');
+const Machine = XState.Machine;
 
-const alarmClockMachine = XState.Machine(
-    {
-        id: 'alarmClock',
-        initial: 'idle',
-        states: {
-            idle: { on: { ARMING: 'armed' } },
-            armed: { on: { DISARMING: 'idle', LAUNCHING: 'alarm_a' } },
-            alarm_a: {
-                entry: ['set_alarm_a_msg'],
-                after: {
-                    5000: { target: 'alarm_b', actions: "refresh" }
-                },
-                on: { STOP: 'clean_up', REPLAY_ALARM: { actions: 'set_alarm_a_msg' } }
-            },
-            alarm_b: {
-                entry: ['set_alarm_b_msg'],
-                on: { STOP: 'clean_up', REPLAY_ALARM: { actions: 'set_alarm_b_msg' } }
-            },
-            clean_up: {
-                entry: ['set_clean_up_msg', XState.send('FINISHING')],
-                on: { FINISHING: 'idle' }
-            }
-        }
-    },
-    {
-        actions: {
-            set_alarm_a_msg: (context, event) => {
-                node.send({
-                    topic: "mrdiynotifier/play",
-                    payload: 'http://192.168.2.100:8001/toShare/radiohead.mp3',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "mrdiynotifier/mqttLedState",
-                    payload: '1,10000',
-                    state: alarmClockService.state.value
-                });
-            },
-            set_alarm_b_msg: (context, event) => {
-                node.send({
-                    topic: "mrdiynotifier/stream",
-                    payload: 'http://ais-edge16-jbmedia-nyc04.cdnstream.com/hot108',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "mrdiynotifier/mqttLedState",
-                    payload: '2,1000',
-                    state: alarmClockService.state.value
-                });
-            },
-            set_clean_up_msg: (context, event) => {
-                node.send({
-                    topic: "mrdiynotifier/stop",
-                    payload: '',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "mrdiynotifier/mqttLedState",
-                    payload: '3,5000',
-                    state: alarmClockService.state.value
-                });
-                node.send({
-                    topic: "disableArmingAlarm",
-                    payload: 'true',
-                    state: alarmClockService.state.value
-                });
-            },
-            refresh: (context, event) => {
-                node.status({ text: alarmClockService.state.value });
-            },
-        }
-    },
-    {
-        guards: {
-            // guardTest
-        }
-    }
-);
-
-const alarmClockService = XState.interpret(alarmClockMachine).start();
-// context.set("alarmClockService",alarmClockService); // to store a variable
 
 // ==== EXTRA =====
 const node = {
@@ -93,5 +13,94 @@ const node = {
 
     },
 }
+// ================
+
+
+const delayList = [15 * 60000, 15 * 60000, 5 * 60000, "LastAlarm"];
+const actionList = [{ "etienne_led": "2,1000", "mp3": "http://192.168.2.100:8001/toShare/ambianceMusic/NatureTherapyRelaxingFullMotionForestrywithNaturalSounds.mp3" },
+{ "etienne_led": "2,500", "mp3": "http://cbcmp3.ic.llnwd.net/stream/cbcmp3_P-2QMTL0_MTL" },
+{ "etienne_led": "2,500", "mp3": "http://192.168.2.100:8001/toShare/trashMusic/TheSiegeofDunkeld.mp3" },
+{ "etienne_led": "2,1000", "mp3": "http://192.168.2.100:8001/toShare/LoudAlarmClockSoundEffectsAllSounds.mp3" }];
+
+
+const alarmClockMachine = Machine(
+    {
+        id: 'alarmClock',
+        initial: 'boot',
+        context: {
+            iterator: 0,
+        },
+        states: {
+            boot: { after: { 5000: 'idle' } }, // Let time to NodeRed to boot!!
+            idle: {
+                entry: ["reset_states", XState.assign({ iterator: 0 })],
+                on: { ARMING: 'armed' }
+            },
+            armed: { on: { STOP: 'idle', LAUNCHING: 'ringing' } },
+            ringing: {
+                id: "testID",
+                on: { STOP: 'idle' },
+                initial: "check_if_last",
+                states: {
+                    check_if_last: {
+                        entry: ['send_mqtt_from_list'],
+                        // TODO : Use "always" transition instead of deprecated "" transition. Note: Try but was hard
+                        on: {
+                            '': [
+                                { target: "ring_last", cond: "is_it_last_alarm" },
+                                { target: "ring_from_list" }
+                            ]
+                        },
+                    },
+                    ring_from_list: {
+                        after: {
+                            ALARM_DELAY: [{ target: "check_if_last" },]
+                        },
+                        exit: [XState.assign({ iterator: (context) => context.iterator + 1 })],
+                    },
+                    ring_last: {}
+                },
+            },
+        }
+    },
+    {
+        delays: {
+            ALARM_DELAY: (context, event) => {
+                return delayList[context.iterator];
+            },
+        },
+        actions: {
+            send_mqtt_from_list: (context, event) => {
+                node.send({
+                    topic: "esparkle/in",
+                    payload: actionList[context.iterator],
+                });
+            },
+            reset_states: (context, event) => {
+                node.send({
+                    topic: "esparkle/in",
+                    payload: { "etienne_led": "3,5000", "cmd": "break" },
+                });
+                node.send({
+                    topic: "disableArmingAlarm",
+                    payload: true,
+                });
+            },
+        },
+        guards: {
+            is_it_last_alarm: (context, event) => {
+                return context.iterator + 1 >= delayList.length;
+            }
+        },
+    },
+);
+// The Interpreter : Manage machine's event and transition
+const alarmClockService = XState.interpret(alarmClockMachine).start();
+
+// Listener service of Interpreter : print State on transition (to Node status)
+alarmClockService.onTransition(
+    (state) => node.status({ text: JSON.stringify(alarmClockService.state.value) })
+);
+// context.set("alarmClockService",alarmClockService); // to store a variable
 
 module.exports = alarmClockService;
