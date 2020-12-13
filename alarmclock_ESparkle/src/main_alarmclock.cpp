@@ -135,18 +135,16 @@ void setup()
   ArduinoOTA.begin();
 
   // INIT LED
-  // Etienne : Comment out Led decision and application from ESParkle. Use later?
-  /* 
   LEDS.addLeds<LED_TYPE, LED_DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(max_bright);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
-  ledDefault(); */
+  ledDefault();
 
   // Etienne's setup ---------------------------
   timeClient.begin();
   display.clear();
-  display.setBrightness(1);                               // Set the brightness:
-  display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // To test?? Etienne
+  display.setBrightness(1); // Set the brightness:
+  display.showNumberDecEx(1234, 0b11100000, false, 4, 0);
   led_controller.setUpInitialize();
 }
 
@@ -340,12 +338,11 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
                 rtttl->stop();
             }
              */
-      // Etienne comment out
-      // if (ledActionInProgress)
-      // {
-      //   msgPriority = 0;
-      //   ledDefault();
-      // }
+      if (ledActionInProgress)
+      {
+        msgPriority = 0;
+        ledDefault();
+      }
     }
     else if (strcmp("restart", json["cmd"]) == 0)
     { // Restart ESP: {cmd:"restart"}
@@ -428,8 +425,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     msgPriority = thisPriority;
   }
 
-  // Etienne : Comment out Led decision and application from ESParkle. Use later?
-  /* 
   // Set led pattern: {"led":"Blink",color:"0xff0000",delay:50}
   if (json.containsKey("led"))
   {
@@ -478,7 +473,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
       ledDefault();
     }
   }
-   */
 }
 
 /**
@@ -699,8 +693,7 @@ void tts(String text, String voice)
 // LED
 //############################################################################
 
-// Etienne : Comment out Led decision and application from ESParkle. Use later?
-/* void ledDefault(uint32_t delay)
+void ledDefault(uint32_t delay)
 {
 
   ledActionTimer.detach();
@@ -812,7 +805,7 @@ void ledOff()
 {
   ledSolid(0x000000);
 }
- */
+
 //############################################################################
 // HELPERS
 //############################################################################
