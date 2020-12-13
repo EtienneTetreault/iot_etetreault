@@ -4,10 +4,10 @@ Todo:
   ☐ On node red : clean up !!
   ☐ Test IoTWebConfig instead of WifiManager. Test ESPHome. All to save secret credential (Wifi and MQTT)
   ☐ Test sleep mode to run remote_scale on battery?
+  ☐ Test use of File transfer protocol (FTP) like FileZilla for storing public files (music?) on Raspberry Pi (instead of Apache)
   ☐ Xstate alarmclock : wait for music status "Idle/Play" before stansition. Resend if not.
-  ☐ Xstate alarmclock : Stop / CleanUp from UI toggle switch not working....
-  ☐ Xstate alacrmclock : Download right music and confirm alarm states...
-  ☐ Xstate alarmclock : Create substate for AlarmLauching :alarm_a, alarm_b...etc
+  ☐ On Alarm_clock: Integrate Led driver TM1809, and delete delete LedControler class
+  ☐ On Alarm_clock: Integrate FastLed library with TM1809 and maybe use led sequence/MQTT from ESParkle?
 
 
 Done:
@@ -20,4 +20,6 @@ Done:
   ✔ Rename files in Github and delete the env:test vs env:main. Keep only d1_test @done(20-11-26 11:45)
   ✔ On remote_scale, send message to stop alarm clock @done(20-12-06 12:21)
   ✔ On node red : create state machine and set-reset logic for alarm @done(20-12-06 12:21)
-
+  ✔ Xstate alarmclock : Stop / CleanUp from UI toggle switch not working.... @done(20-12-10 10:49)
+  ✔ Xstate alacrmclock : Download right music and confirm alarm states... @done(20-12-10 10:49)
+  ✔ Xstate alarmclock : Create substate for AlarmLauching :alarm_a, alarm_b...etc @done(20-12-10 10:49)
