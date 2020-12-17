@@ -39,8 +39,12 @@ function node_xstate_clock(msg) {
         case "alarmClock": // from the Node Red alarm clock / timer
             event_input = "LAUNCHING";
             break;
-        case "remoteScale/fromESP": // from the remote scale PCB
+        case "remoteScale/fromESP": // from the MCU on the remote scale
             event_input = "STOP"
+            break;
+        case "esparkle/out": // from the MCU on the alarmclock
+            if (msg.payload == "Reconnected to MQTT") { node.status({ text: "esp_reboot" }) } // TODO : Use these watchdog!
+            else if (msg.payload == "Mp3 done watchdog : is it normal?") { node.status({ text: "esp_mp3_done" }) }
             break;
         default:
             throw_error();
@@ -49,6 +53,4 @@ function node_xstate_clock(msg) {
     }
 
     alarmClockService.send(event_input);
-
-    // node.status({ text: alarmClockService.state.value });
 }
