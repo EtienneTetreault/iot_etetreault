@@ -13,7 +13,6 @@ Deleted some functionnality, see later if require :
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-// #include <MPU6050.h>
 #include <FastLED.h>
 #include <Ticker.h>
 #include <AudioFileSourceHTTPStream.h>
@@ -22,23 +21,21 @@ Deleted some functionnality, see later if require :
 #include <AudioFileSourceBuffer.h>
 #include <AudioGeneratorRTTTL.h>
 #include <AudioGeneratorMP3.h>
+
 #ifdef USE_I2S
 #include "AudioOutputI2S.h"
 #else
 #include "AudioOutputI2SNoDAC.h"
 #endif
+
 #include "esparkle.h"
 #include "config.h"
 // Etienne's library ---------------------------
 #include <NTPClient.h>     // Network Time Protocol, client
 #include <WiFiUdp.h>       // handles sending and receiving of UDP packages
 #include <TM1637Display.h> // LED display, name of the onboard MCU
-#include "LedControl.h"
 
 // Etienne's declaration  ---------------------------
-LedControl led_controller({D2, D3, D4}, "mqttLedState"); // Instance of LedControl class
-char led_payload[32] = "";
-
 const long utcOffsetInSeconds = -18000;
 WiFiUDP ntpUDP;                                                   // Define NTP Client to get time
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds); // Instance of timeclock client
@@ -49,7 +46,6 @@ TM1637Display display(CLK, DIO); // Instance of clock display class
 
 unsigned long clock_refresh_period = 30000;
 unsigned long lastClockMillis = 0;
-unsigned long lastDebugMillis = 0;
 
 // Misc global variables
 bool otaInProgress = false;
@@ -145,7 +141,6 @@ void setup()
   display.clear();
   display.setBrightness(1); // Set the brightness:
   display.showNumberDecEx(1234, 0b11100000, false, 4, 0);
-  led_controller.setUpInitialize();
 }
 
 //############################################################################
@@ -156,9 +151,6 @@ void loop()
 {
   unsigned long curMillis = millis();
 
-  // Etienne LedControl.h object main loop
-  led_controller.loopTimer();
-
   // Etienne Display Clock main loop
   if (curMillis - lastClockMillis >= clock_refresh_period)
   {
@@ -168,25 +160,20 @@ void loop()
     lastClockMillis = curMillis; // Remember the time
   }
 
-  if (curMillis - lastDebugMillis >= 2000)
-  {
-    Serial.printf_P(PSTR("\nFree heap: %d\n"), ESP.getFreeHeap());
-    lastDebugMillis = curMillis; // Remember the time
-  }
-
   // HANDLE Wifi
   static unsigned long lastWifiMillis = 0;
   bool wifiIsConnected = WiFi.isConnected();
   if (!wifiIsConnected)
   {
     stopPlaying();
+    Serial.println(("Wifi Not connected : Etienne C"));
 
     // ledBlink(50, 0xFF0000);
     if (curMillis - lastWifiMillis > 60000)
     {
       if (wifiConnect())
       {
-        // ledDefault();
+        ledDefault();
       }
       lastWifiMillis = curMillis;
     }
@@ -232,7 +219,8 @@ void loop()
     {
       //mp3->stop();
       stopPlaying();
-      //Serial.println(F("MP3 done"));
+      Serial.println(("MP3 done : Etienne B")); // TODO : think song is finishing? Buffer is late and empty? Resend NodeRed Play requirement
+      mqttClient.publish(MQTT_OUT_TOPIC, "Mp3 done watchdog : is it normal?");
     }
   }
   else if (rtttl && rtttl->isRunning())
@@ -289,13 +277,12 @@ bool mqttConnect(bool about)
     if (about)
     {
       mqttCmdAbout();
+      mqttClient.publish(MQTT_OUT_TOPIC, "Reconnected to MQTT"); // TODO : Resend NodeRed Play requirement??
     }
     else
     {
-      mqttClient.publish(MQTT_OUT_TOPIC, PSTR("Reconnected to MQTT"));
     }
     mqttClient.subscribe(MQTT_IN_TOPIC);
-    mqttClient.subscribe(led_controller.mqtt_topic.c_str());
   }
   else
   {
@@ -311,19 +298,12 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 
   if (!json.success())
   {
-    mqttClient.publish(MQTT_OUT_TOPIC, PSTR("{event:\"jsonInBuffer.parseObject(payload) failed\"}"));
+    mqttClient.publish(MQTT_OUT_TOPIC, "{event:\"jsonInBuffer.parseObject(payload) failed\"}");
     return;
   }
 
   json.printTo(Serial);
   Serial.println();
-
-  //Etienne led MQTT to controler
-  if (json.containsKey("etienne_led"))
-  {
-    strlcpy(led_payload, json["etienne_led"], sizeof(led_payload));
-    led_controller.getMqttUpdate(led_payload);
-  }
 
   // Simple commands
   if (json.containsKey("cmd"))
@@ -331,18 +311,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     if (strcmp("break", json["cmd"]) == 0)
     { // Break current action: {cmd:"break"}
       stopPlaying();
-      /*
-            if (mp3 && mp3->isRunning()) {
-                mp3->stop();
-            } else if (rtttl && rtttl->isRunning()) {
-                rtttl->stop();
-            }
-             */
-      if (ledActionInProgress)
-      {
-        msgPriority = 0;
-        ledDefault();
-      }
+      msgPriority = 0;
+      ledDefault();
     }
     else if (strcmp("restart", json["cmd"]) == 0)
     { // Restart ESP: {cmd:"restart"}
@@ -552,7 +522,8 @@ void playAudio()
 
   stopPlaying();
 
-  Serial.printf_P(PSTR("\nFree heap: %d\n"), ESP.getFreeHeap());
+  Serial.printf("Free heap: ");
+  Serial.println(ESP.getFreeHeap());
 
   if (!out)
   {
@@ -571,7 +542,8 @@ void playAudio()
   if (strncmp("http", audioSource, 4) == 0)
   {
     // Get MP3 from stream
-    Serial.printf_P(PSTR("**MP3 stream: %s\n"), audioSource);
+    Serial.print("**MP3 stream: ");
+    Serial.println(audioSource);
     stream = new AudioFileSourceHTTPStream(audioSource);
     buff = new AudioFileSourceBuffer(stream, 1024 * 2);
     //buff = new AudioFileSourceBuffer(stream, preallocateBuffer, preallocateBufferSize);
@@ -579,7 +551,7 @@ void playAudio()
     mp3->begin(buff, out);
     if (!mp3->isRunning())
     {
-      //Serial.println(F("Unable to play MP3"));
+      Serial.println("Unable to play MP3 : EtienneA");
       stopPlaying();
     }
   }
@@ -613,6 +585,7 @@ void playAudio()
 
 bool stopPlaying()
 {
+  Serial.println("InStopPlaying");
   bool stopped = false;
   if (rtttl)
   {
@@ -693,15 +666,10 @@ void tts(String text, String voice)
 // LED
 //############################################################################
 
+// Etienne : Led default is now Off
 void ledDefault(uint32_t delay)
 {
-
-  ledActionTimer.detach();
-  ledActionTimer.attach_ms(delay, []() {
-    ledActionInProgress = false;
-    static uint8_t hue = 0;
-    fill_solid(leds, NUM_LEDS, CHSV(hue++, 255, 255));
-  });
+  ledSolid(0x000000);
 }
 
 void ledRainbow(uint32_t delay)
