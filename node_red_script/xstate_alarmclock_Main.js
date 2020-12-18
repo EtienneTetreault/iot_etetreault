@@ -23,9 +23,9 @@ function node_xstate_clock(msg) {
     const alarmClockService = require('./xstate_alarmclock_Setup.js')
 
 
-    function throw_error() {
+    function throw_error(t_payload_input) {
         node.status({ text: "ERROR!" });
-        node.send({ payload: "ERROR!" });
+        node.send({ topic: "Error Xstate", payload: t_payload_input });
 
     }
 
@@ -34,7 +34,7 @@ function node_xstate_clock(msg) {
         case "disabled": // from the Node Red UI toggling / switch button
             if (msg.payload == false) { event_input = 'ARMING' }
             else if (msg.payload == true) { event_input = 'STOP' }
-            else { throw_error() }
+            else { throw_error(msg.payload) }
             break;
         case "alarmClock": // from the Node Red alarm clock / timer
             event_input = "LAUNCHING";
@@ -43,11 +43,15 @@ function node_xstate_clock(msg) {
             event_input = "STOP"
             break;
         case "esparkle/out": // from the MCU on the alarmclock
-            if (msg.payload == "Reconnected to MQTT") { node.status({ text: "esp_reboot" }) } // TODO : Use these watchdog!
-            else if (msg.payload == "Mp3 done watchdog : is it normal?") { node.status({ text: "esp_mp3_done" }) }
+            const err_list = ["Reconnected to MQTT", "Mp3 done watchdog : is it normal?"];
+            if (err_list.includes(msg.payload)) {
+                event_input = 'MP3_STOPPED';
+                throw_error(msg.payload);
+
+            }
             break;
         default:
-            throw_error();
+            throw_error(msg.payload);
             break;
 
     }

@@ -1,3 +1,5 @@
+// https://xstate.js.org/
+
 const XState = require('xstate');
 // const XState = global.get('xstate');
 const Machine = XState.Machine;
@@ -39,7 +41,10 @@ const alarmClockMachine = Machine(
             armed: { on: { STOP: 'idle', LAUNCHING: 'ringing' } },
             ringing: {
                 id: "testID",
-                on: { STOP: 'idle' },
+                on: {
+                    STOP: 'idle',
+                    MP3_STOPPED: { target: undefined, actions: 'send_mqtt_from_list' }
+                },
                 initial: "check_if_last",
                 states: {
                     check_if_last: {
