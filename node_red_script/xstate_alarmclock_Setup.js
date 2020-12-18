@@ -1,3 +1,5 @@
+// https://xstate.js.org/
+
 const XState = require('xstate');
 // const XState = global.get('xstate');
 const Machine = XState.Machine;
@@ -16,11 +18,11 @@ const node = {
 // ================
 
 
-const delayList = [15 * 60000, 15 * 60000, 5 * 60000, "LastAlarm"];
-const actionList = [{ "etienne_led": "2,1000", "mp3": "http://192.168.2.100:8001/toShare/ambianceMusic/NatureTherapyRelaxingFullMotionForestrywithNaturalSounds.mp3" },
-{ "etienne_led": "2,500", "mp3": "http://cbcmp3.ic.llnwd.net/stream/cbcmp3_P-2QMTL0_MTL" },
-{ "etienne_led": "2,500", "mp3": "http://192.168.2.100:8001/toShare/trashMusic/TheSiegeofDunkeld.mp3" },
-{ "etienne_led": "2,1000", "mp3": "http://192.168.2.100:8001/toShare/LoudAlarmClockSoundEffectsAllSounds.mp3" }];
+const delayList = [10 * 60000, 10 * 60000, 5 * 60000, "LastAlarm"];
+const actionList = [{ "led": "Off", "mp3": "http://192.168.2.100:8001/toShare/ambianceMusic/NatureTherapyRelaxingFullMotionForestrywithNaturalSounds.mp3" },
+{ "led": "Rainbow", "delay": 500, "mp3": "http://cbcmp3.ic.llnwd.net/stream/cbcmp3_P-2QMTL0_MTL" },
+{ "led": "Rainbow", "delay": 20, "mp3": "http://192.168.2.100:8001/toShare/trashMusic/TheSiegeofDunkeld.mp3" },
+{ "led": "Disco", "mp3": "http://192.168.2.100:8001/toShare/LoudAlarmClockSoundEffectsAllSounds.mp3" }];
 
 
 const alarmClockMachine = Machine(
@@ -39,7 +41,10 @@ const alarmClockMachine = Machine(
             armed: { on: { STOP: 'idle', LAUNCHING: 'ringing' } },
             ringing: {
                 id: "testID",
-                on: { STOP: 'idle' },
+                on: {
+                    STOP: 'idle',
+                    MP3_STOPPED: { target: undefined, actions: 'send_mqtt_from_list' }
+                },
                 initial: "check_if_last",
                 states: {
                     check_if_last: {
@@ -79,7 +84,7 @@ const alarmClockMachine = Machine(
             reset_states: (context, event) => {
                 node.send({
                     topic: "esparkle/in",
-                    payload: { "etienne_led": "3,5000", "cmd": "break" },
+                    payload: { "led": "Off", "cmd": "break" },
                 });
                 node.send({
                     topic: "disableArmingAlarm",

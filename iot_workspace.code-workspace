@@ -9,10 +9,6 @@
 			"path": "esp8266_remote_scale_for_alarm"
 		},
 		{
-			"name": "esp8266_alarmclock_music",
-			"path": "esp8266_alarmclock_music"
-		},
-		{
 			"name": "node_red_script",
 			"path": "node_red_script"
 		},
