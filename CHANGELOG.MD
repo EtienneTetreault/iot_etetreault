@@ -13,7 +13,21 @@ Group changes to describe their impact on the project, as follows:
 - `Security` to invite users to upgrade in case of vulnerabilities.
 
 ## [Unreleased]
-Futur work : Add led control through TM1809 and FastLed library. Add digital speaker driver/ampli MAX98357. Add remote shutdown of alarm throug a hacked bathroom scale, with Load Cell Amplifier HX711.
+Futur work : Add digital speaker driver/ampli MAX98357. Add remote shutdown of alarm throug a hacked bathroom scale, with Load Cell Amplifier HX711.
+
+## [0.2.0] - 2020-12-18
+On hardware, just received IC TM1809 for driving the RGB led of the real alarmclock. Update the software with appropriate library [FastLED](https://github.com/FastLED/FastLED) and the MQTT led command from original project [ESParkle](https://github.com/CosmicMac/ESParkle).
+
+### Changed
+- On the hardware :
+    - the RGB leds used are now those on the real alarmclock and they are now driven with the IC TM1809.
+- On alarmclock MCU, `/alarmclock_ESparkle`:
+    - The LedController custom class is replaced by the [FastLED](https://github.com/FastLED/FastLED) library, configured to drive a single RGB led driven by the IC TM1809.
+    - The MQTT command for the led are now those from the original project [ESParkle](https://github.com/CosmicMac/ESParkle).
+- On NodeRed and associated scripts, `/node_red_script`:
+    - Update MQTT led command to those of the original project of ESParkle
+    - Add Replay music on MP3stop or MQTT reconnect. 
+
 
 ## [0.1.0] - 2020-12-10
 First release. Work on the MCU for the alarmclock (display time, light led and play music from stream). Small work on the MCU for a remote bathroom scale, used to stop the alarmclock from ringing. Creation of NodeRed serveur to control the alarmclock logic (state machine), host the alarmclock timer/alarm, add UI control over alarm and dispatch MQTT communication.
