@@ -97,6 +97,7 @@ void mqttReconnect()
 void setup()
 {
   /* ############################ WifiManager ############################################# */
+  Serial.begin(115200);
 
   //reset saved settings
   //wifiManager.resetSettings();
@@ -115,7 +116,6 @@ void setup()
 
   pinMode(lamp, OUTPUT);
   digitalWrite(lamp, LOW);
-  Serial.begin(115200);
   mqttclient.setServer(mqtt_server, 1883);
   mqttclient.setCallback(callback);
 }
