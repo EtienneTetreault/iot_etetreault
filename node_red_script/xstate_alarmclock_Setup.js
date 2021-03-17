@@ -18,7 +18,9 @@ const node = {
 // ================
 
 
+// const delayList = [2000, 2000, 2000, "LastAlarm"];
 const delayList = [10 * 60000, 10 * 60000, 5 * 60000, "LastAlarm"];
+
 const actionList = [{ "led": "Off", "mp3": "http://192.168.2.100:8001/toShare/ambianceMusic/NatureTherapyRelaxingFullMotionForestrywithNaturalSounds.mp3" },
 { "led": "Rainbow", "delay": 500, "mp3": "http://cbcmp3.ic.llnwd.net/stream/cbcmp3_P-2QMTL0_MTL" },
 { "led": "Rainbow", "delay": 20, "mp3": "http://192.168.2.100:8001/toShare/trashMusic/TheSiegeofDunkeld.mp3" },
@@ -42,7 +44,7 @@ const alarmClockMachine = Machine(
             ringing: {
                 id: "testID",
                 on: {
-                    STOP: 'idle',
+                    STOP: 'lightedOn',
                     MP3_STOPPED: { target: undefined, actions: 'send_mqtt_from_list' }
                 },
                 initial: "check_if_last",
@@ -66,6 +68,7 @@ const alarmClockMachine = Machine(
                     ring_last: {}
                 },
             },
+            lightedOn: { entry: ['music_stop_light_on'], after: { 600000: 'idle' } },
         }
     },
     {
@@ -79,6 +82,12 @@ const alarmClockMachine = Machine(
                 node.send({
                     topic: "esparkle/in",
                     payload: actionList[context.iterator],
+                });
+            },
+            music_stop_light_on: (context, event) => {
+                node.send({
+                    topic: "esparkle/in",
+                    payload: { "led": "Solid", "color": "0xFF0000", "rtttl": "starwars:d=4" },
                 });
             },
             reset_states: (context, event) => {
