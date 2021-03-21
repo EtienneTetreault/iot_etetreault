@@ -1,15 +1,28 @@
 # iot_etetreault
 Repository for all personnal IoT related script, specifically embedded microcontroler source files.
 
-## Current release [0.2.0] - 2020-12-18
-On hardware, just received IC TM1809 for driving the RGB led of the real alarmclock. Update the software with appropriate library [FastLED](https://github.com/FastLED/FastLED) and the MQTT led command from original project [ESParkle](https://github.com/CosmicMac/ESParkle).
+## Current release [0.3.0] - 2021-03-21
+On hardware, just received DAC+Ampli breakout board MAX98357A, that takes the I2S music signal from the ESP8266 and output to the speaker. Sound is a lot better :) Took to occasion of re-wiring to migrate all the project from Wemos D1 to Wemos Mini (both based on ESP8266), which is smaller and will be used for the final, soldered protoboard. Also, on NodeRed, some cool update to time management, time zone and time calculation.
+
+### Added
+- On NodeRed :
+    - UTC Time Zone set by user and used by Node Red alarm and alarmclock_ESparkle time display
+    - Sleep time predicted shown as notification when arming the alarm
+- On NodeRed associated scripts, `/node_red_script`:
+    - Create state after the final snoozing and before reset, where the light is up to help in the dark morning
 
 ### Changed
 - On the hardware :
-    - the RGB leds used are now those on the real alarmclock and they are now driven with the IC TM1809.
+    - integration of MAX98357A and use of I2S signal from the ESP8266
+    - main MCU is now Wemos Mini instead of Wemos D1 (both based on ESP8266)
 - On alarmclock MCU, `/alarmclock_ESparkle`:
-    - The LedController custom class is replaced by the [FastLED](https://github.com/FastLED/FastLED) library, configured to drive a single RGB led driven by the IC TM1809.
-    - The MQTT command for the led are now those from the original project [ESParkle](https://github.com/CosmicMac/ESParkle).
-- On NodeRed and associated scripts, `/node_red_script`:
-    - Update MQTT led command to those of the original project of ESParkle
-    - Add Replay music on MP3stop or MQTT reconnect. 
+    - Use predefined settings from class ESP8266Audio to output sound signal as I2S to the new DAC+Ampli
+    - At MQTT connection (boot), fetch over MQTT and use Node Red user TimeZone to update the NTPC time client
+
+
+## Futur Section : Schematic and Wiring
+- Explain and show proof of class AudioOutput.SetGain with limit value 0 to 4. Makes some test of most confortable sound!!
+- Show schematic for I2S pinout of ESP-8266 Mini from ESParcle project
+- Explain add item to schematic :
+    - Resistor to boost speaker impedance (is 3 Ohm and Adafruit recommand >4 Ohm for ampli MAX98357A)
+    - Resistor to diminish the natural gain in dB of ampli MAX98357A

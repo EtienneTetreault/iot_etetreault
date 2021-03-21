@@ -1,5 +1,10 @@
 
 Todo:
+  ☐ Upgrade ReadMe
+  ☐ Add explanation of WifiManger and connection as AccesPoint AP
+  ☐ Add explanation of I2S wiring and specific led pattern wiring on the physical alarm clock
+  ☐ Explore Pi Hole possibility??
+  ☐ Clean all the TODO tag in scripts
   ☐ Test IoTWebConfig instead of WifiManager. Test ESPHome. All to save secret credential (Wifi and MQTT)
   ☐ Test sleep mode to run remote_scale on battery?
   ☐ Test use of File transfer protocol (FTP) like FileZilla/Samba for storing public files (music?) on Raspberry Pi (instead of Apache)
@@ -8,6 +13,19 @@ Todo:
   ☐ On Alarm_clock: Delete all fuckup printf, print(F()) and printf_P(PSTR()). What is it, seem to make the esp reboot...
   ☐ On NodeRed : Create a way to log error message. Show them on Dashboard? Create alert on Dashboard/Cellphone?
   ☐ On NodeRed : Create backup of flow in json and store with JS script on github?
+  ☐ On RemoteScale : Delete extra line from example...
+  ☐ On RemoteScale : Use Ticker lib. for delay between sent message over mqtt
+  ☐ On NodeRed : Watchdog to verify all ESP8266 are connected to Wifi and MQTT. Put visual Q on Dashboard and alarmClock?
+
+
+Done in current Unreleased:
+  ✔ On NodeRed : UI, show time of sleep predicted, calculated with the difference between Now and Alarm time @done(21-01-20 10:34)
+  ✔ On Xstate alarmclock  : Create state after the final snoozing and before reset, where the light is up to help in the dark morning @done(21-01-20 10:34)
+  ✔ On NodeRed : Create Variable in NODE RED UI to set UTC time zone. Used to set alarm in NODE RED alarm set and time clock on ESParkle @done(21-03-20 10:34)
+  ✔ On Alarm_clock : Add the MAX98357A to board and use I2S sound output instead @done(21-03-20 10:34)
+  ✔ On Alarm_clock : Tranfert to ESP Mini @done(21-03-20 10:34)
+  ✔ On Alarm_clock : Fetch the user input time zone stted bu NodeRed UI at reboot and adjust clock time client with it @done(21-03-21 11:05)
+
 
 Release [0.2.0] - 2020-12-18:
     ✔ On Alarm_clock: Integrate Led driver TM1809, and delete delete LedControler class @done(20-12-17 13:53)
