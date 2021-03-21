@@ -6,7 +6,7 @@ Deleted some functionnality, see later if require :
 - LED control with hardcoded pattern via FastLed library : 
 */
 
-//#define USE_I2S                 // uncomment to use extenral I2S DAC
+#define USE_I2S // uncomment to use extenral I2S DAC
 
 #include <Arduino.h>
 #include <ESP8266WiFiMulti.h>
@@ -36,9 +36,10 @@ Deleted some functionnality, see later if require :
 #include <TM1637Display.h> // LED display, name of the onboard MCU
 
 // Etienne's declaration  ---------------------------
-const long utcOffsetInSeconds = -18000;
-WiFiUDP ntpUDP;                                                   // Define NTP Client to get time
-NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds); // Instance of timeclock client
+// const long utcOffsetInSeconds = -18000;
+int utc_offset_hours = 0;
+WiFiUDP ntpUDP;                                                 // Define NTP Client to get time
+NTPClient timeClient(ntpUDP, "pool.ntp.org", utc_offset_hours); // Instance of timeclock client
 
 const int CLK = D6;              //Set the CLK pin connection to the display
 const int DIO = D5;              //Set the DIO pin connection to the display
@@ -278,6 +279,7 @@ bool mqttConnect(bool about)
     {
       mqttCmdAbout();
       mqttClient.publish(MQTT_OUT_TOPIC, "Reconnected to MQTT"); // TODO : Resend NodeRed Play requirement??
+      mqttClient.publish(MQTT_OUT_TOPIC, "Time requested");      // Ask for UTC offset everytime we regain MQQt, like at boot up
     }
     else
     {
@@ -304,6 +306,16 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 
   json.printTo(Serial);
   Serial.println();
+
+  // Etienne Added Commands
+  if (json.containsKey("utc_offset"))
+  {
+    utc_offset_hours = json["utc_offset"];
+    Serial.print("Setting new time zone to : ");
+    Serial.println(utc_offset_hours);
+    timeClient.setTimeOffset(utc_offset_hours * 3600); // Change UTC_Offset in seconds, from NODE RED user input in UI
+    return;
+  }
 
   // Simple commands
   if (json.containsKey("cmd"))
